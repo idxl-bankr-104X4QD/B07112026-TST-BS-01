@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Добавить акт — Нормативна база</title>
+<style>
+:root{--bg:#eef0f3;--panel:#fff;--ink:#1b2230;--muted:#5d6879;--line:#d9dde4;--accent:#1d4f8f;--accent-soft:#e6eef8;--ok:#1e7a46;--bad:#c0392b;
+ --ui:system-ui,-apple-system,'Segoe UI',sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#12161d;--panel:#1a202a;--ink:#e4e8ef;--muted:#9aa5b6;--line:#2b3340;--accent:#7fb0ee;--accent-soft:#1f2c40;--ok:#58c28a;--bad:#ef7b6e;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--ui);padding:0 max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:900px;margin:0 auto;padding:16px 0 48px;display:grid;gap:16px}
+h1{font:600 20px var(--ui);margin:0}h2{font:600 16px var(--ui);margin:0 0 8px}
+a{color:var(--accent)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+.drop{border:2px dashed var(--line);border-radius:8px;padding:28px 16px;text-align:center;color:var(--muted);cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+button,.btn{font:14px var(--ui);padding:8px 14px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--panel);font-weight:600}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.danger.armed{background:var(--bad);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+input[type=text],input[type=password]{width:100%;font:14px var(--ui);padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+textarea{width:100%;font:13px/1.4 var(--ui);padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.item{border:1px solid var(--line);border-radius:6px;padding:12px;margin-top:10px}
+.item.flex{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);margin-left:6px}
+.tag.new{background:#e3f4ea;color:var(--ok)}
+.log{font:12.5px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;max-height:260px;overflow:auto;margin-top:8px}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.hint{font-size:13px;color:var(--muted)}
+details{margin-top:8px}summary{cursor:pointer;font-size:13px;color:var(--accent)}
+.sample{font:12.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px;margin-top:6px;max-height:260px;overflow:auto}
+@media(max-width:640px){.row{grid-template-columns:1fr}}
+</style></head><body>
+<div class="wrap">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h1>Добавить или обновить акт</h1><a href="index.html">← к базе</a></div>
+
+  <div class="card">
+    <h2>1. Файл с zakon.rada.gov.ua</h2>
+    <p class="hint">На сайте Рады откройте акт → «Завантажити» → <b>HTML</b>. Можно несколько файлов сразу. Если акт уже есть в базе, он заменится новой редакцией (по номеру). Старые акты в «жёстком» формате (строки по 60 знаков) склеиваются в абзацы автоматически.</p>
+    <div class="drop" id="drop" tabindex="0">Перетащите .htm/.html файлы сюда или нажмите, чтобы выбрать</div>
+    <input id="file" type="file" accept=".htm,.html,text/html" multiple hidden>
+    <div id="items"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Опубликовать</h2>
+    <p class="hint">Автоматически: страница сама запишет файлы в ваш репозиторий GitHub (нужен токен, инструкция ниже). Вручную: скачайте файлы и загрузите их в папку <code>data</code> репозитория через Add file → Upload files.</p>
+    <div class="row">
+      <div><label for="gh-owner">Пользователь GitHub</label><input type="text" id="gh-owner"></div>
+      <div><label for="gh-repo">Репозиторий</label><input type="text" id="gh-repo"></div>
+      <div><label for="gh-branch">Ветка</label><input type="text" id="gh-branch" value="main"></div>
+    </div>
+    <label for="gh-token">Токен GitHub (хранится только в этом браузере)</label>
+    <input type="password" id="gh-token" autocomplete="off">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button class="primary" id="go" type="button" disabled>Опубликовать на сайт</button>
+      <button id="dl" type="button" disabled>Скачать файлы для ручной загрузки</button>
+    </div>
+    <div id="links" class="hint" style="margin-top:10px"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Акты в базе</h2>
+    <p class="hint">Удаление убирает акт с сайта (нужен токен из шага 2). Нажмите «Удалить» два раза подряд.</p>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Как создать токен (один раз)</h2>
+    <p class="hint">GitHub → ваш аватар → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token. Repository access: <b>Only select repositories</b> → ваш репозиторий. Permissions → Repository permissions → <b>Contents: Read and write</b>. Срок действия выберите длинный, скопируйте токен и вставьте выше. Токен даёт доступ только к этому репозиторию.</p>
+  </div>
+</div>
+<script src="lib.js"></script>
+<script>
+(function(){
+var G=null,items=[],$=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+/* ---------- разбор HTML с zakon.rada.gov.ua ---------- */
+var BLOCK={P:1,DIV:1,TR:1,LI:1,H1:1,H2:1,H3:1,H4:1,H5:1,H6:1,TABLE:1,HR:1,BR:1};
+function extract(doc){
+  var body=[],st=[],tgt=body;
+  (function walk(n){
+    if(n.nodeType===3){tgt.push(n.nodeValue);return}
+    if(n.nodeType!==1)return;
+    var t=n.tagName;if(t==='STYLE'||t==='SCRIPT'||t==='TITLE')return;
+    if(t==='DIV'&&(n.getAttribute('class')||'').indexOf('stamp')>=0)tgt=st;
+    if(t==='TD')tgt.push('\x01');else if(BLOCK[t])tgt.push('\n');
+    for(var c=n.firstChild;c;c=c.nextSibling)walk(c);
+    if(BLOCK[t])tgt.push('\n');
+  })(doc.body);
+  return {L:lines(body),S:lines(st)};
+}
+function lines(ch){
+  var out=[];ch.join('').replace(/ /g,' ').split('\n').forEach(function(l){
+    var cells=l.split('\x01').map(function(c){return c.replace(/\s+/g,' ').trim()}).filter(Boolean);
+    if(!cells.length)return;
+    if(cells.length>1&&cells.some(function(c){return c.length>180}))cells.forEach(function(c){out.push(c)});else out.push(cells.join(' | '));
+  });return out;
+}
+/* старый формат: текст разбит на строки по ~60 знаков, склеиваем в абзацы; ASCII-таблицы оставляем как есть */
+function isPre(L){var a=L.map(function(l){return l.length}).sort(function(x,y){return x-y});return L.length>150&&a[a.length>>1]<80}
+function rewrap(L){
+  var out=[],cur='',END=/[.;:!?»”}]$/,UP=/^([A-ZА-ЯІЇЄҐ0-9«"„({\-–—]|[а-яіїєґ]\)\s)/;
+  L.forEach(function(l){
+    if(/^(\||-{5,}|={5,})/.test(l)){if(cur){out.push(cur);cur=''}out.push(l);return}
+    if(!cur){cur=l;return}
+    var head=/^(Розділ\s+[IVX]+\.|Додаток\s*\d*\s*$)/.test(cur)&&cur.length<200;
+    var caps=function(x){return x.length>=5&&/[А-ЯІЇЄҐ]{4}/.test(x)&&x===x.toUpperCase()};
+    var brk=caps(l)!==caps(cur)||((END.test(cur)||head)&&UP.test(l))||/^\d+(\.\d+)*\.\s+\S/.test(l)||/^\{/.test(l);
+    if(brk){out.push(cur);cur=l}else cur+=(/[A-Za-zА-Яа-яІіЇїЄєҐґ]-$/.test(cur)?'':' ')+l;
+  });
+  if(cur)out.push(cur);return out;
+}
+function split(L,isCode,pre){
+  var pat=isCode?/^(Стаття\s+\d+(-\d+)?\.|Книга |КНИГА |РОЗДІЛ |Розділ |ПРИКІНЦЕВІ)/:/^(Розділ\s+[IVX]+|[IVX]+\.\s|Додаток\s*\d*\s*$|ДОДАТОК\s*\d*\s*$)/;
+  var secs=[],cur={t:'Преамбула / вступ',x:[]};
+  L.forEach(function(t){if(t.length<220&&pat.test(t)){secs.push(cur);cur={t:t,x:[]}}else cur.x.push(t)});
+  secs.push(cur);
+  var m=[],pend='';
+  secs.forEach(function(s){
+    var body=(pre?rewrap(s.x):s.x).join('\n'),has=body.trim().length>0;
+    var struct=/^(Книга |КНИГА |Розділ |РОЗДІЛ |Розділ\s+[IVX]+)/.test(s.t)&&s.t.indexOf('Стаття')<0;
+    if(!has||(isCode&&struct&&body.length<200&&s.t.indexOf('ПРИКІНЦЕВІ')!==0)){pend+=(pend?' · ':'')+s.t+(has?' '+body:'');return}
+    var t=s.t;if(pend){t=pend+' · '+t;pend=''}
+    m.push({t:t,x:body});
+  });
+  if(pend)m.push({t:pend,x:'(без тексту)'});
+  var out=[];
+  m.forEach(function(s){
+    if(s.x.length<=15000){out.push(s);return}
+    var chunks=[],buf=[],n=0;
+    s.x.split('\n').forEach(function(line){
+      if(n>8000&&/^\d+(-\d+)?\.\s/.test(line)){chunks.push(buf);buf=[];n=0}
+      buf.push(line);n+=line.length;
+    });
+    chunks.push(buf);
+    chunks.forEach(function(c,k){
+      var nums=c.map(function(l){var q=/^(\d+(?:-\d+)?)\.\s/.exec(l);return q&&q[1]}).filter(Boolean);
+      var rng=nums.length?' · п. '+nums[0]+(nums.length>1&&nums[nums.length-1]!==nums[0]?'–'+nums[nums.length-1]:''):' · ч. '+(k+1);
+      out.push({t:s.t.slice(0,130)+rng,x:c.join('\n')});
+    });
+  });
+  return out;
+}
+var MON=['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
+var GEN={'Порядку':['Порядок','затверджений'],'Положення':['Положення','затверджене'],'Правил':['Правила','затверджені'],'Інструкції':['Інструкція','затверджена'],'Методики':['Методика','затверджена'],'Методичних':['Методичні','затверджені']};
+var INS={'Наказ':'наказом','Постанова':'постановою','Розпорядження':'розпорядженням','Рішення':'рішенням','Указ':'указом'};
+function genIssuer(s){return s.toLowerCase().replace(/^міністерство/,'Міністерства').replace(/^кабінет міністрів/,'Кабінету Міністрів').replace(/україни/,'України')}
+function parseAct(html){
+  var doc=new DOMParser().parseFromString(html,'text/html'),e=extract(doc),L=e.L,S=e.S,sj=S.join(' ');
+  var typ=S.filter(function(x){return /від \d\d\.\d\d\.\d{4} (№|N) /.test(x)})[0]||'';
+  var m=/від (\d\d\.\d\d\.\d{4}) (?:№|N) (\S+)/.exec(typ),ed=/Редакція від (\d\d\.\d\d\.\d{4})/.exec(sj);
+  if(!m)throw new Error('не найдены номер и дата акта (это HTML-файл с zakon.rada.gov.ua?)');
+  var date=m[1],num=m[2],isCode=num==='2597-VIII',title=S[0]||num;
+  var pre=!isCode&&isPre(L),secs=split(L,isCode,pre);
+  var full=L.join(' ').replace(/ \| /g,' ').replace(/\s+/g,' ');
+  var d=date.split('.'),dtxt=d[0]+' '+MON[+d[1]-1]+' '+d[2];
+  var iss=L.slice(0,10).filter(function(x){return /^(МІНІСТЕРСТВО|КАБІНЕТ МІНІСТРІВ)/.test(x)})[0]||'';
+  var isJust=!iss?/юстиції/i.test(typ):/ЮСТИЦІЇ/.test(iss);
+  var mo=/(?:ЗАТВЕРДЖЕНО|Затверджено) Наказ[^\d]{0,80}?(\d{1,2} [а-яії]+ \d{4}) року (?:№|N) (\S+)/.exec(full);
+  var mr=/Зареєстровано в Міністерстві юстиції України (\d{1,2} [а-яії]+ \d{4}) р\. за (?:№|N) (\S+)/.exec(full);
+  var odate=mo&&isJust?mo[1]:dtxt,onum=mo&&isJust?mo[2]:num;
+  var issuer=isJust?'Міністерства юстиції України':(iss?genIssuer(iss):'');
+  var kind=(/^(Наказ|Постанова|Розпорядження|Закон|Указ|Рішення)/.exec(typ)||['Наказ'])[0];
+  var reg=mr?', зареєстрованим у Міністерстві юстиції України '+mr[1]+' р. за № '+mr[2]:'';
+  var mt=/^Про затвердження (\S+)([\s\S]*)/.exec(title),short,req,rest;
+  if(isCode){short=title;req='прийнятий Законом України від '+dtxt+' року № '+num}
+  else if(mt&&GEN[mt[1]]){
+    rest=mt[2];if(mt[1]==='Методичних'&&/^ рекомендацій/.test(rest))rest=' рекомендації'+rest.slice(' рекомендацій'.length);
+    short=GEN[mt[1]][0]+rest;
+    req=GEN[mt[1]][1]+' '+(INS[kind]||'наказом')+' '+(issuer||'Міністерства юстиції України')+' від '+odate+' року № '+onum+reg;
+  }else{short=title;req=kind+' '+(issuer||'Міністерства юстиції України')+' від '+odate+' року № '+onum+reg.replace(', зареєстрованим',', зареєстрований')}
+  var mu=/https:\/\/zakon\.rada\.gov\.ua\/go\/[^\s<|]+/.exec(sj);
+  var sh=(typ.split(';')[1]||'').replace(/\(.*?\)/g,'').replace(/ від .*$/,'').trim();
+  var all=secs.map(function(s){return s.x}).join('\n\n');
+  return {id:isCode?'kodeks':(isJust?'o'+num.replace('/','-'):'x'+num.replace('/','-')+'-'+d[2]),short:short,req:req,ed:ed?ed[1]:'',
+    chip:isCode?'Кодекс':(isJust||!sh?'№ '+num:sh+' № '+num),date:date,url:mu?mu[0]:'',secs:secs,pre:pre,
+    chars:all.length,paras:secs.reduce(function(a,s){return a+s.x.split('\n').filter(function(l){return !/^(\||-{5,}|={5,})/.test(l)}).length},0),head:all.slice(0,700),tail:all.slice(-500)};
+}
+
+/* ---------- интерфейс ---------- */
+function ready(){return items.some(function(it){return !it.err})}
+function render(){
+  if(!G)return;
+  $('go').disabled=$('dl').disabled=!ready();
+  $('items').innerHTML=items.map(function(it,k){
+    if(it.err)return '<div class="item"><b>'+esc(it.name)+'</b> <span class="bad">— '+esc(it.err)+'</span></div>';
+    var a=it.act,ex=G.idx.some(function(x){return x.id===a.id});
+    return '<div class="item"><b>'+esc(a.chip)+'</b><span class="tag '+(ex?'':'new')+'">'+(ex?'заменит текущую редакцию':'новый акт')+'</span> <span class="hint">· разделов: '+a.secs.length+' · абзацев: '+a.paras+' · '+Math.round(a.chars/1000)+' тыс. знаков · редакция от '+esc(a.ed||'—')+(a.pre?' · старый формат склеен в абзацы':'')+'</span>'+
+     '<label>Название</label><input type="text" data-k="'+k+'" data-f="short" value="'+esc(a.short)+'">'+
+     '<label>Реквизиты (под названием в меню)</label><textarea rows="3" data-k="'+k+'" data-f="req">'+esc(a.req)+'</textarea>'+
+     '<details><summary>Проверить начало и конец текста</summary><div class="sample">'+esc(a.head)+'\n\n[…]\n\n'+esc(a.tail)+'</div></details>'+
+     '<button type="button" data-rm="'+k+'" style="margin-top:8px">Убрать</button></div>';
+  }).join('');
+  $('list').innerHTML=G.idx.map(function(a){return '<div class="item flex"><div style="min-width:0"><b>'+esc(a.chip)+'</b> <span class="hint">'+esc(a.short.slice(0,110))+' · ред. '+esc(a.ed||'—')+'</span></div><button class="danger" type="button" data-del="'+esc(a.id)+'">Удалить</button></div>'}).join('')||'<p class="hint">В базе нет актов.</p>';
+}
+$('items').addEventListener('input',function(e){var t=e.target;if(t.dataset.f)items[+t.dataset.k].act[t.dataset.f]=t.value});
+$('items').addEventListener('click',function(e){var r=e.target.dataset.rm;if(r!==undefined){items.splice(+r,1);render()}});
+async function addFiles(fl){
+  if(!G)return;
+  for(var i=0;i<fl.length;i++){
+    var f=fl[i];
+    try{var a=parseAct(await f.text());items=items.filter(function(x){return x.err||x.act.id!==a.id});items.push({name:f.name,act:a})}
+    catch(e){items.push({name:f.name,err:e.message})}
+  }
+  render();
+}
+var drop=$('drop'),inp=$('file');
+drop.addEventListener('click',function(){inp.click()});
+drop.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')inp.click()});
+inp.addEventListener('change',function(){var fl=Array.from(inp.files);inp.value='';addFiles(fl)});
+['dragover','dragenter'].forEach(function(n){drop.addEventListener(n,function(e){e.preventDefault();drop.classList.add('over')})});
+['dragleave','drop'].forEach(function(n){drop.addEventListener(n,function(e){e.preventDefault();drop.classList.remove('over')})});
+drop.addEventListener('drop',function(e){addFiles(Array.from(e.dataTransfer.files))});
+
+function sortIdx(a){a.sort(function(x,y){var dx=x.date.split('.').reverse().join(''),dy=y.date.split('.').reverse().join('');return (x.id!=='kodeks')-(y.id!=='kodeks')||(dx<dy?-1:dx>dy?1:0)||(x.id<y.id?-1:1)});a.forEach(function(x,i){x.order=i})}
+function buildIndex(){
+  var idx=G.idx.filter(function(x){return !items.some(function(it){return !it.err&&it.act.id===x.id})});
+  items.forEach(function(it){if(it.err)return;var a=it.act;idx.push({id:a.id,short:a.short,req:a.req,ed:a.ed,chip:a.chip,date:a.date,url:a.url})});
+  idx.forEach(function(x){if(!x.date)x.date='01.01.1900'});
+  sortIdx(idx);return idx;
+}
+async function files(){
+  var idx=buildIndex(),out=[];
+  for(var i=0;i<items.length;i++){if(items[i].err)continue;var a=items[i].act;out.push({path:'data/'+a.id+'.enc',data:await NBLib.encryptJson(G.key,{id:a.id,secs:a.secs})})}
+  out.push({path:'data/index.enc',data:await NBLib.encryptJson(G.key,idx)});
+  return {files:out,idx:idx};
+}
+function log(s,c){var l=$('log');l.insertAdjacentHTML('beforeend','<div class="'+(c||'')+'">'+esc(s)+'</div>');l.scrollTop=l.scrollHeight}
+function saved(k){try{return localStorage.getItem('nb-gh-'+k)||''}catch(e){return ''}}
+function save(k,v){try{localStorage.setItem('nb-gh-'+k,v)}catch(e){}}
+$('gh-owner').value=saved('owner')||location.hostname.split('.')[0]||'';
+$('gh-repo').value=saved('repo')||location.pathname.split('/').filter(Boolean)[0]||'';
+$('gh-branch').value=saved('branch')||'main';$('gh-token').value=saved('token');
+
+function gh(){
+  var o=$('gh-owner').value.trim(),rp=$('gh-repo').value.trim(),br=$('gh-branch').value.trim()||'main',tk=$('gh-token').value.trim();
+  if(!o||!rp||!tk)return null;
+  ['owner','repo','branch','token'].forEach(function(k){save(k,{owner:o,repo:rp,branch:br,token:tk}[k])});
+  return {base:'https://api.github.com/repos/'+o+'/'+rp+'/contents/',br:br,H:{Authorization:'Bearer '+tk,Accept:'application/vnd.github+json'}};
+}
+async function sha(c,path){
+  var g=await fetch(c.base+path+'?ref='+c.br,{headers:c.H});
+  if(g.status===200)return (await g.json()).sha;
+  if(g.status===404)return undefined;
+  throw new Error(path+': '+g.status+' (проверьте токен и название репозитория)');
+}
+async function put(c,path,data){
+  var p=await fetch(c.base+path,{method:'PUT',headers:c.H,body:JSON.stringify({message:'Обновление '+path,content:NBLib.b64e(data),branch:c.br,sha:await sha(c,path)})});
+  if(!p.ok)throw new Error(path+': '+p.status+' '+(await p.text()).slice(0,120));
+}
+async function del(c,path){
+  var s=await sha(c,path);if(!s)return;
+  var p=await fetch(c.base+path,{method:'DELETE',headers:c.H,body:JSON.stringify({message:'Удаление '+path,sha:s,branch:c.br})});
+  if(!p.ok)throw new Error(path+': '+p.status+' '+(await p.text()).slice(0,120));
+}
+$('dl').addEventListener('click',async function(){
+  var r=await files(),h='Скачайте все файлы и загрузите в папку <b>data</b> репозитория: ';
+  r.files.forEach(function(f){var u=URL.createObjectURL(new Blob([f.data],{type:'application/octet-stream'}));h+='<a href="'+u+'" download="'+f.path.split('/')[1]+'">'+f.path.split('/')[1]+'</a> · '});
+  $('links').innerHTML=h;
+});
+$('go').addEventListener('click',async function(){
+  var c=gh();if(!c){log('Заполните пользователя, репозиторий и токен.','bad');return}
+  $('go').disabled=true;$('log').innerHTML='';
+  try{
+    var r=await files();
+    for(var i=0;i<r.files.length;i++){await put(c,r.files[i].path,r.files[i].data);log('✓ '+r.files[i].path,'ok')}
+    G.idx=r.idx;items=[];log('Готово. Сайт обновится через 1–2 минуты (затем Ctrl+F5).','ok');
+  }catch(e){log('Ошибка: '+e.message,'bad')}
+  render();
+});
+
+/* ---------- удаление актов ---------- */
+var armed=null;
+$('list').addEventListener('click',async function(e){
+  var b=e.target.closest('[data-del]');if(!b)return;
+  var id=b.dataset.del;
+  if(armed!==b){
+    if(armed){armed.classList.remove('armed');armed.textContent='Удалить'}
+    armed=b;b.classList.add('armed');b.textContent='Нажмите ещё раз: удалить';
+    setTimeout(function(){if(armed===b){b.classList.remove('armed');b.textContent='Удалить';armed=null}},5000);return;
+  }
+  armed=null;b.disabled=true;$('log').innerHTML='';
+  var idx=G.idx.filter(function(x){return x.id!==id});idx.forEach(function(x,i){x.order=i});
+  var c=gh();
+  if(!c){
+    var u=URL.createObjectURL(new Blob([await NBLib.encryptJson(G.key,idx)],{type:'application/octet-stream'}));
+    $('links').innerHTML='Без токена автоудаление недоступно. Вручную: скачайте <a href="'+u+'" download="index.enc">index.enc</a>, загрузите его в папку <b>data</b> репозитория, затем удалите там файл <b>'+esc(id)+'.enc</b>.';
+    b.disabled=false;b.classList.remove('armed');b.textContent='Удалить';return;
+  }
+  try{
+    await put(c,'data/index.enc',await NBLib.encryptJson(G.key,idx));log('✓ обновлён data/index.enc','ok');
+    await del(c,'data/'+id+'.enc');log('✓ удалён data/'+id+'.enc','ok');
+    G.idx=idx;log('Готово. Акт исчезнет с сайта через 1–2 минуты (затем Ctrl+F5).','ok');
+  }catch(err){log('Ошибка: '+err.message,'bad')}
+  render();
+});
+
+NBLib.gate().then(function(g){G=g;render()}).catch(function(e){document.querySelector('.wrap').innerHTML='<div class="card bad">Не удалось открыть базу: '+esc(e.message)+'</div>'});
+})();
+</script>
+</body></html>
